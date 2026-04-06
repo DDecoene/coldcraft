@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getAnthropicClient from '@/lib/anthropic';
+import { execSync } from 'child_process';
 
 const MAX_LENGTHS: Record<string, number> = {
   product: 500,
@@ -178,26 +178,22 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
   ]
 }`;
 
-  try {
-    const message = await getAnthropicClient().messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+  const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
-    const rawText =
-      message.content[0].type === 'text' ? message.content[0].text : '';
+  try {
+    const rawText = execSync('claude -p -', {
+      input: fullPrompt,
+      env: { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN ?? '' },
+      timeout: 30000,
+      maxBuffer: 1024 * 1024,
+    }).toString().trim();
 
     let parsed: { emails: Email[] };
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      // Attempt to extract JSON if the model wrapped it despite instructions
       const match = rawText.match(/\{[\s\S]*\}/);
-      if (!match) {
-        throw new Error('Model returned non-JSON output.');
-      }
+      if (!match) throw new Error('Model returned non-JSON output.');
       parsed = JSON.parse(match[0]);
     }
 
@@ -216,7 +212,7 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
 
     return NextResponse.json({ emails: parsed.emails });
   } catch (err) {
-    console.error('[/api/generate] Anthropic error:', err);
+    console.error('[/api/generate] error:', err);
     return NextResponse.json(
       { error: 'Failed to generate emails. Please try again.' },
       { status: 500 }
