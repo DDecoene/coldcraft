@@ -125,7 +125,7 @@ export default function UpgradeModal({ isOpen, onClose, initialPlan = 'yearly' }
           >
             {/* Best value badge */}
             <span className="absolute -top-2.5 left-4 text-xs font-bold bg-blue-500 text-white px-2 py-0.5 rounded-full">
-              BEST VALUE — SAVE 26%
+              BEST VALUE — SAVE 34%
             </span>
             <div className="flex items-center justify-between">
               <div>
@@ -133,8 +133,8 @@ export default function UpgradeModal({ isOpen, onClose, initialPlan = 'yearly' }
                 <p className="text-slate-400 text-xs mt-0.5">Billed once per year</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-bold text-lg">€79<span className="text-slate-400 font-normal text-sm">/yr</span></p>
-                <p className="text-slate-400 text-xs">€6.58/mo</p>
+                <p className="text-white font-bold text-lg">€149<span className="text-slate-400 font-normal text-sm">/yr</span></p>
+                <p className="text-slate-400 text-xs">€12.42/mo</p>
               </div>
             </div>
             {selectedPlan === 'yearly' && (
@@ -164,7 +164,7 @@ export default function UpgradeModal({ isOpen, onClose, initialPlan = 'yearly' }
                 <p className="text-slate-400 text-xs mt-0.5">Billed every month</p>
               </div>
               <div className="text-right">
-                <p className="text-white font-bold text-lg">€9<span className="text-slate-400 font-normal text-sm">/mo</span></p>
+                <p className="text-white font-bold text-lg">€19<span className="text-slate-400 font-normal text-sm">/mo</span></p>
               </div>
             </div>
             {selectedPlan === 'monthly' && (
