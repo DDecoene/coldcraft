@@ -5,12 +5,13 @@ import { useState, useEffect } from 'react';
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialPlan?: 'monthly' | 'yearly';
 }
 
 type Plan = 'monthly' | 'yearly';
 
-export default function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
-  const [selectedPlan, setSelectedPlan] = useState<Plan>('yearly');
+export default function UpgradeModal({ isOpen, onClose, initialPlan = 'yearly' }: UpgradeModalProps) {
+  const [selectedPlan, setSelectedPlan] = useState<Plan>(initialPlan);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import getAnthropicClient from '@/lib/anthropic';
 
+const MAX_LENGTHS: Record<string, number> = {
+  product: 500,
+  prospectRole: 100,
+  prospectIndustry: 100,
+  valueProposition: 500,
+  prospectName: 100,
+  prospectCompany: 100,
+};
+
+function sanitize(value: string, maxLen: number): string {
+  return value
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '') // strip control chars
+    .replace(/[<>]/g, '')                                // strip angle brackets
+    .trim()
+    .slice(0, maxLen);
+}
+
 interface GenerateRequest {
   product: string;
   prospectRole: string;
@@ -81,7 +98,17 @@ export async function POST(req: NextRequest) {
     length,
   } = body;
 
-  if (!product || !prospectRole || !prospectIndustry || !valueProposition) {
+  // Sanitize all string inputs
+  const clean = {
+    product: sanitize(product ?? '', MAX_LENGTHS.product),
+    prospectRole: sanitize(prospectRole ?? '', MAX_LENGTHS.prospectRole),
+    prospectIndustry: sanitize(prospectIndustry ?? '', MAX_LENGTHS.prospectIndustry),
+    valueProposition: sanitize(valueProposition ?? '', MAX_LENGTHS.valueProposition),
+    prospectName: sanitize(prospectName ?? '', MAX_LENGTHS.prospectName),
+    prospectCompany: sanitize(prospectCompany ?? '', MAX_LENGTHS.prospectCompany),
+  };
+
+  if (!clean.product || !clean.prospectRole || !clean.prospectIndustry || !clean.valueProposition) {
     return NextResponse.json(
       {
         error:
@@ -106,7 +133,7 @@ Rules you MUST follow:
 - Never start with "I hope this finds you well", "My name is", "I wanted to reach out", or any similar filler openers
 - Be direct and specific to the prospect's role and industry — generic emails fail
 - Each email must have exactly ONE clear call to action (one ask, not multiple)
-- Reference the prospect's role (${prospectRole}) and industry (${prospectIndustry}) in a specific, credible way
+- Reference the prospect's role (${clean.prospectRole}) and industry (${clean.prospectIndustry}) in a specific, credible way
 - Avoid buzzwords and empty claims — every sentence must earn its place
 - Write in ${toneGuide[tone as keyof typeof toneGuide]}
 - Target length: ${lengthGuide[length as keyof typeof lengthGuide]}
@@ -120,10 +147,10 @@ Frameworks:
 Output ONLY valid JSON. No markdown, no explanation, no code fences. The JSON must be an object with a single key "emails" containing an array of exactly 3 email objects, each with keys: "subject", "body", "framework".`;
 
   const prospectIdentity = [
-    prospectName ? `Name: ${prospectName}` : null,
-    prospectCompany ? `Company: ${prospectCompany}` : null,
-    `Role: ${prospectRole}`,
-    `Industry: ${prospectIndustry}`,
+    clean.prospectName ? `Name: ${clean.prospectName}` : null,
+    clean.prospectCompany ? `Company: ${clean.prospectCompany}` : null,
+    `Role: ${clean.prospectRole}`,
+    `Industry: ${clean.prospectIndustry}`,
   ]
     .filter(Boolean)
     .join('\n');
@@ -134,10 +161,10 @@ PROSPECT
 ${prospectIdentity}
 
 PRODUCT / SERVICE
-${product}
+${clean.product}
 
 KEY VALUE PROPOSITION
-${valueProposition}
+${clean.valueProposition}
 
 TONE: ${tone}
 LENGTH: ${length}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import UpgradeModal from "./UpgradeModal";
 
 type Tone = "professional" | "casual" | "bold";
 type Length = "short" | "medium" | "long";
@@ -179,6 +180,7 @@ export default function EmailGenerator() {
 
   const [credits, setCredits] = useState<number>(DAILY_CREDITS);
   const [pro, setPro] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<EmailVariant[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -281,6 +283,13 @@ export default function EmailGenerator() {
                 <span className="font-mono text-xs text-slate-500">
                   {credits}/{DAILY_CREDITS} free
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrade(true)}
+                  className="font-mono text-xs text-blue-400 border border-blue-400/30 bg-blue-400/10 rounded px-2 py-0.5 hover:bg-blue-400/20 transition-colors"
+                >
+                  Upgrade
+                </button>
               </div>
             )}
             {pro && (
@@ -440,12 +449,13 @@ export default function EmailGenerator() {
                 <p className="font-mono text-xs text-amber-400/70">
                   Resets tomorrow · or upgrade for unlimited
                 </p>
-                <a
-                  href="#pricing"
+                <button
+                  type="button"
+                  onClick={() => setShowUpgrade(true)}
                   className="inline-block rounded-lg bg-amber-500 px-5 py-2 text-sm font-semibold text-slate-900 transition-all duration-150 hover:bg-amber-400 active:scale-95"
                 >
                   Upgrade to Pro →
-                </a>
+                </button>
               </div>
             )}
           </form>
@@ -522,6 +532,7 @@ export default function EmailGenerator() {
           )}
         </div>
       </div>
+      <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
     </section>
   );
 }
