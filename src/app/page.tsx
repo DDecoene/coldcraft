@@ -1,9 +1,29 @@
 import EmailGenerator from "@/components/EmailGenerator";
 import PricingSection from "@/components/PricingSection";
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "ColdCraft",
+  "description": "Free AI cold email generator. Get 3 personalised cold email variants in seconds using proven frameworks.",
+  "url": "https://coldcraft.rgwnd.app",
+  "applicationCategory": "BusinessApplication",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "EUR",
+    "description": "3 free cold emails per day"
+  }
+};
+
 export default function Home() {
   return (
     <div className="grain min-h-screen bg-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       {/* Nav */}
       <nav className="border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">

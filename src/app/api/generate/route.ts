@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
           { status: 429 }
         );
         if (isNewFingerprint) {
-          res.cookies.set(FP_COOKIE, fingerprint, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
+          res.cookies.set(FP_COOKIE, fingerprint, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production' });
         }
         return res;
       }
@@ -215,7 +215,7 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
 
     const res = NextResponse.json({ emails: parsed.emails });
     if (isNewFingerprint) {
-      res.cookies.set(FP_COOKIE, fingerprint, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
+      res.cookies.set(FP_COOKIE, fingerprint, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365, secure: process.env.NODE_ENV === 'production' });
     }
     return res;
   } catch (err) {

@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
           sameSite: 'lax',
           maxAge: 60 * 60 * 24 * 365, // 1 year
           path: '/',
+          secure: process.env.NODE_ENV === 'production',
         });
         return res;
       }

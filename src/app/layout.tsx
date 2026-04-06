@@ -22,9 +22,10 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ColdCraft — AI Cold Email Generator",
+  metadataBase: new URL('https://coldcraft.rgwnd.app'),
+  title: "ColdCraft — Free AI Cold Email Generator",
   description:
-    "Generate high-converting cold emails in seconds with AI. Free cold email generator for sales reps, founders, and agencies.",
+    "Generate 3 personalised cold emails in seconds. Free AI cold email generator using proven frameworks (AIDA, Problem-Solution, Pattern Interrupt). No sign-up required.",
   keywords: [
     "cold email generator",
     "ai cold email generator",
@@ -32,26 +33,29 @@ export const metadata: Metadata = {
     "cold email templates",
     "sales email generator",
   ],
+  alternates: {
+    canonical: 'https://coldcraft.rgwnd.app',
+  },
   openGraph: {
-    title: "ColdCraft — AI Cold Email Generator",
+    title: "ColdCraft — Free AI Cold Email Generator",
     description:
-      "Generate high-converting cold emails in seconds with AI. Free to start.",
+      "Generate 3 personalised cold emails in seconds. Free AI cold email generator using proven frameworks. No sign-up required.",
     type: "website",
-    url: "https://coldcraft.ai",
+    url: "https://coldcraft.rgwnd.app",
     siteName: "ColdCraft",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "ColdCraft — AI Cold Email Generator",
+        alt: "ColdCraft — Free AI Cold Email Generator",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ColdCraft — AI Cold Email Generator",
-    description: "Generate high-converting cold emails in seconds with AI.",
+    title: "ColdCraft — Free AI Cold Email Generator",
+    description: "Generate 3 personalised cold emails in seconds. Free, no sign-up required.",
   },
 };
 
