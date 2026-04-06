@@ -181,9 +181,11 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
   const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { ANTHROPIC_API_KEY: _drop, ...safeEnv } = process.env;
     const rawText = execSync('claude -p -', {
       input: fullPrompt,
-      env: { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN ?? '' },
+      env: { ...safeEnv, CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN ?? '' },
       timeout: 30000,
       maxBuffer: 1024 * 1024,
     }).toString().trim();
