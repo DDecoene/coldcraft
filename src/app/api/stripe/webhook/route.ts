@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import stripe from '@/lib/stripe';
-import getSupabaseClient from '@/lib/supabase';
 import Stripe from 'stripe';
 
 export async function POST(req: NextRequest) {
@@ -23,33 +22,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid webhook signature.' }, { status: 400 });
   }
 
+  // Stripe is the source of truth — no DB needed.
+  // verify-pro queries Stripe directly for active subscriptions.
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-
-    const email = session.metadata?.email;
-    const stripeCustomerId =
-      typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
-
-    if (!email) {
-      console.error('[/api/stripe/webhook] No email in session metadata:', session.id);
-      return NextResponse.json({ error: 'No email in metadata.' }, { status: 400 });
-    }
-
-    const supabase = getSupabaseClient();
-    const { error } = await supabase.from('pro_users').upsert(
-      {
-        email,
-        stripe_customer_id: stripeCustomerId,
-        created_at: new Date().toISOString(),
-        active: true,
-      },
-      { onConflict: 'email' }
-    );
-
-    if (error) {
-      console.error('[/api/stripe/webhook] Supabase upsert error:', error);
-      return NextResponse.json({ error: 'Database error.' }, { status: 500 });
-    }
+    console.log('[webhook] New Pro subscription:', session.metadata?.email, session.customer);
   }
 
   return NextResponse.json({ received: true });

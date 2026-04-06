@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getSupabaseClient from '@/lib/supabase';
+import stripe from '@/lib/stripe';
 
 export async function POST(req: NextRequest) {
   let body: { email: string };
@@ -15,18 +15,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'A valid email is required.' }, { status: 400 });
   }
 
-  const supabase = getSupabaseClient();
-  const { data, error } = await supabase
-    .from('pro_users')
-    .select('email, active')
-    .eq('email', email)
-    .eq('active', true)
-    .maybeSingle();
+  try {
+    // Find customers with this email
+    const customers = await stripe.customers.list({ email, limit: 5 });
 
-  if (error) {
-    console.error('[/api/verify-pro] Supabase error:', error);
-    return NextResponse.json({ error: 'Database error.' }, { status: 500 });
+    if (customers.data.length === 0) {
+      return NextResponse.json({ isPro: false });
+    }
+
+    // Check if any customer has an active subscription
+    for (const customer of customers.data) {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customer.id,
+        status: 'active',
+        limit: 1,
+      });
+      if (subscriptions.data.length > 0) {
+        return NextResponse.json({ isPro: true });
+      }
+    }
+
+    return NextResponse.json({ isPro: false });
+  } catch (err) {
+    console.error('[/api/verify-pro] Stripe error:', err);
+    return NextResponse.json({ error: 'Verification failed.' }, { status: 500 });
   }
-
-  return NextResponse.json({ isPro: data !== null });
 }

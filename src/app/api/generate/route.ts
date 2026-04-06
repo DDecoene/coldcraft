@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import anthropic from '@/lib/anthropic';
+import getAnthropicClient from '@/lib/anthropic';
 
 interface GenerateRequest {
   product: string;
@@ -152,7 +152,7 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
 }`;
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await getAnthropicClient().messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
       system: systemPrompt,

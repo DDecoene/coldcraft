@@ -1,0 +1,24 @@
+{
+  "projectId": "prj_KrckAa6YwxOr7RVOAYgwOg2xu2CV",
+  "projectName": "coldcraft",
+  "teamId": "team_RZl2ZL3livPC3eGZVdyOx2gR",
+  "teamName": "ddecoenes-projects",
+  "productionUrl": "https://coldcraft.vercel.app",
+  "deploymentUrl": "https://coldcraft-rhitcl2dw-ddecoenes-projects.vercel.app",
+  "inspectorUrl": "https://vercel.com/ddecoenes-projects/coldcraft/6UXxKtTzMN1SjCJjRnkh9MuSw3qr",
+  "lastDeploymentId": "dpl_6UXxKtTzMN1SjCJjRnkh9MuSw3qr",
+  "lastDeploymentStatus": "ERROR",
+  "lastDeploymentError": "Build failed: ANTHROPIC_API_KEY (and other required env vars) not set on Vercel",
+  "requiredEnvVars": [
+    "ANTHROPIC_API_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_BASE_URL"
+  ],
+  "notes": "GitHub integration not linked (Vercel GitHub App needs to be installed at https://github.com/apps/vercel). Project was created and deployed directly via Vercel CLI. Re-deploy after setting environment variables at https://vercel.com/ddecoenes-projects/coldcraft/settings/environment-variables"
+}
