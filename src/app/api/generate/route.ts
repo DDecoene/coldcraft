@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
+import { randomUUID } from 'crypto';
+import { getDb } from '@/lib/db';
+import { verifyProToken, COOKIE_NAME as PRO_COOKIE } from '@/lib/pro-token';
+
+const FP_COOKIE = 'coldcraft_fp';
+const DAILY_LIMIT = 3;
 
 const MAX_LENGTHS: Record<string, number> = {
   product: 500,
@@ -12,8 +18,8 @@ const MAX_LENGTHS: Record<string, number> = {
 
 function sanitize(value: string, maxLen: number): string {
   return value
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '') // strip control chars
-    .replace(/[<>]/g, '')                                // strip angle brackets
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '')
+    .replace(/[<>]/g, '')
     .trim()
     .slice(0, maxLen);
 }
@@ -35,27 +41,6 @@ interface Email {
   framework: string;
 }
 
-// In-memory rate limiter: IP -> { count, resetAt }
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const midnight = new Date();
-  midnight.setUTCHours(24, 0, 0, 0);
-  const resetAt = midnight.getTime();
-
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt });
-    return false;
-  }
-  if (entry.count >= 3) {
-    return true;
-  }
-  entry.count += 1;
-  return false;
-}
-
 const lengthGuide = {
   short: '3–5 sentences per email, under 100 words in the body',
   medium: '5–8 sentences per email, 100–180 words in the body',
@@ -69,17 +54,55 @@ const toneGuide = {
 };
 
 export async function POST(req: NextRequest) {
-  // Rate limiting
-  const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? '127.0.0.1';
-  if (isRateLimited(ip)) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded. You can generate up to 3 times per day.' },
-      { status: 429 }
-    );
+  const response = NextResponse.next();
+
+  // --- Pro check via signed cookie (no Stripe call needed) ---
+  const proToken = req.cookies.get(PRO_COOKIE)?.value ?? '';
+  const isPro = proToken ? verifyProToken(proToken) : false;
+
+  // --- Fingerprint cookie ---
+  let fingerprint = req.cookies.get(FP_COOKIE)?.value ?? '';
+  let isNewFingerprint = false;
+  if (!fingerprint) {
+    fingerprint = randomUUID();
+    isNewFingerprint = true;
   }
 
-  // Parse and validate request body
+  // --- Usage check for free users ---
+  if (!isPro) {
+    try {
+      const db = await getDb();
+      const result = await db.query<{ count: number }>(
+        `INSERT INTO usage (fingerprint_id, usage_date, count)
+         VALUES ($1, CURRENT_DATE, 1)
+         ON CONFLICT (fingerprint_id, usage_date)
+         DO UPDATE SET count = usage.count + 1
+         RETURNING count`,
+        [fingerprint]
+      );
+      const count = result.rows[0].count;
+      if (count > DAILY_LIMIT) {
+        // Roll back the increment so it stays at the limit
+        await db.query(
+          `UPDATE usage SET count = $1 WHERE fingerprint_id = $2 AND usage_date = CURRENT_DATE`,
+          [DAILY_LIMIT, fingerprint]
+        );
+        const res = NextResponse.json(
+          { error: 'Rate limit exceeded. You can generate up to 3 times per day.' },
+          { status: 429 }
+        );
+        if (isNewFingerprint) {
+          res.cookies.set(FP_COOKIE, fingerprint, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
+        }
+        return res;
+      }
+    } catch (err) {
+      console.error('[/api/generate] DB error:', err);
+      // Fail open — don't block users if DB is down
+    }
+  }
+
+  // --- Parse and validate body ---
   let body: GenerateRequest;
   try {
     body = await req.json();
@@ -87,18 +110,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
   }
 
-  const {
-    product,
-    prospectRole,
-    prospectIndustry,
-    valueProposition,
-    prospectName,
-    prospectCompany,
-    tone,
-    length,
-  } = body;
+  const { product, prospectRole, prospectIndustry, valueProposition, prospectName, prospectCompany, tone, length } = body;
 
-  // Sanitize all string inputs
   const clean = {
     product: sanitize(product ?? '', MAX_LENGTHS.product),
     prospectRole: sanitize(prospectRole ?? '', MAX_LENGTHS.prospectRole),
@@ -110,10 +123,7 @@ export async function POST(req: NextRequest) {
 
   if (!clean.product || !clean.prospectRole || !clean.prospectIndustry || !clean.valueProposition) {
     return NextResponse.json(
-      {
-        error:
-          'Missing required fields: product, prospectRole, prospectIndustry, valueProposition.',
-      },
+      { error: 'Missing required fields: product, prospectRole, prospectIndustry, valueProposition.' },
       { status: 400 }
     );
   }
@@ -121,12 +131,10 @@ export async function POST(req: NextRequest) {
   const validTones = ['professional', 'casual', 'bold'];
   const validLengths = ['short', 'medium', 'long'];
   if (!validTones.includes(tone) || !validLengths.includes(length)) {
-    return NextResponse.json(
-      { error: 'Invalid tone or length value.' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Invalid tone or length value.' }, { status: 400 });
   }
 
+  // --- Build prompt ---
   const systemPrompt = `You are an expert cold email copywriter. Your job is to write cold emails that actually get responses.
 
 Rules you MUST follow:
@@ -151,9 +159,7 @@ Output ONLY valid JSON. No markdown, no explanation, no code fences. The JSON mu
     clean.prospectCompany ? `Company: ${clean.prospectCompany}` : null,
     `Role: ${clean.prospectRole}`,
     `Industry: ${clean.prospectIndustry}`,
-  ]
-    .filter(Boolean)
-    .join('\n');
+  ].filter(Boolean).join('\n');
 
   const userPrompt = `Generate exactly 3 cold emails for the following prospect and product.
 
@@ -202,17 +208,16 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
     if (
       !Array.isArray(parsed.emails) ||
       parsed.emails.length !== 3 ||
-      parsed.emails.some(
-        (e) =>
-          typeof e.subject !== 'string' ||
-          typeof e.body !== 'string' ||
-          typeof e.framework !== 'string'
-      )
+      parsed.emails.some((e) => typeof e.subject !== 'string' || typeof e.body !== 'string' || typeof e.framework !== 'string')
     ) {
       throw new Error('Unexpected response shape from model.');
     }
 
-    return NextResponse.json({ emails: parsed.emails });
+    const res = NextResponse.json({ emails: parsed.emails });
+    if (isNewFingerprint) {
+      res.cookies.set(FP_COOKIE, fingerprint, { httpOnly: true, sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
+    }
+    return res;
   } catch (err) {
     console.error('[/api/generate] error:', err);
     return NextResponse.json(
