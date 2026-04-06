@@ -1,0 +1,12 @@
+services:
+  frontend:
+    container_name: frontend-coldcraft
+    build: .
+    env_file: .env.production
+    networks:
+      - infra_network
+    restart: unless-stopped
+
+networks:
+  infra_network:
+    external: true
