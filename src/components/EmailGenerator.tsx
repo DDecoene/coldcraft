@@ -184,6 +184,7 @@ export default function EmailGenerator() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<EmailVariant[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scraping, setScraping] = useState(false);
@@ -237,16 +238,19 @@ export default function EmailGenerator() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canGenerate) return;
-    if (!form.product.trim()) {
-      setError("Please describe your product or service.");
+
+    const missing: string[] = [];
+    if (!form.product.trim()) missing.push("product / service");
+    if (!form.prospectRole.trim()) missing.push("prospect role");
+    if (!form.prospectIndustry.trim()) missing.push("industry");
+    if (!form.valueProposition.trim()) missing.push("value proposition");
+
+    if (missing.length > 0) {
+      setFormError(`Please fill in: ${missing.join(", ")}.`);
       return;
     }
 
-    if (!form.prospectRole.trim() || !form.prospectIndustry.trim() || !form.valueProposition.trim()) {
-      setError("Please fill in prospect role, industry, and value proposition.");
-      return;
-    }
-
+    setFormError(null);
     setLoading(true);
     setError(null);
     setResults(null);
@@ -492,6 +496,13 @@ export default function EmailGenerator() {
               </div>
             </div>
 
+            {/* Inline form validation error */}
+            {formError && (
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 font-mono text-xs text-amber-400">
+                {formError}
+              </p>
+            )}
+
             {/* Generate button or upgrade prompt */}
             {canGenerate ? (
               <button
@@ -573,7 +584,7 @@ export default function EmailGenerator() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
-                <p className="text-sm font-medium text-red-300">Generation failed</p>
+                <p className="text-sm font-medium text-red-300">Generation failed — please try again</p>
                 <p className="font-mono text-xs text-red-400/70 mt-0.5">{error}</p>
                 <button
                   onClick={() => setError(null)}
