@@ -185,6 +185,10 @@ export default function EmailGenerator() {
   const [results, setResults] = useState<EmailVariant[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scraping, setScraping] = useState(false);
+  const [scrapeError, setScrapeError] = useState<string | null>(null);
+
   useEffect(() => {
     setCredits(getCredits());
     setPro(isPro());
@@ -202,6 +206,33 @@ export default function EmailGenerator() {
 
   const handleTone = (tone: Tone) => setForm((prev) => ({ ...prev, tone }));
   const handleLength = (length: Length) => setForm((prev) => ({ ...prev, length }));
+
+  const handleScrape = async () => {
+    const url = scrapeUrl.trim();
+    if (!url) return;
+    setScraping(true);
+    setScrapeError(null);
+    try {
+      const res = await fetch("/api/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error ?? `Error ${res.status}`);
+      }
+      setForm((prev) => ({
+        ...prev,
+        product: data.product || prev.product,
+        valueProposition: data.valueProp || prev.valueProposition,
+      }));
+    } catch (err) {
+      setScrapeError(err instanceof Error ? err.message : "Scraping failed. Fill in manually.");
+    } finally {
+      setScraping(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,6 +331,45 @@ export default function EmailGenerator() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* URL Scraper */}
+            <div className="rounded-lg border border-slate-700/60 bg-slate-800/40 p-3 space-y-2">
+              <label className={labelClasses}>Auto-fill from website <span className="normal-case text-slate-600">(optional)</span></label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={scrapeUrl}
+                  onChange={(e) => { setScrapeUrl(e.target.value); setScrapeError(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleScrape(); } }}
+                  placeholder="https://yourproduct.com"
+                  className={`${inputClasses} flex-1`}
+                  disabled={scraping}
+                />
+                <button
+                  type="button"
+                  onClick={handleScrape}
+                  disabled={scraping || !scrapeUrl.trim()}
+                  className="shrink-0 rounded-lg border border-slate-600 bg-slate-700/60 px-3 py-2 text-sm text-slate-300 transition-all duration-150 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-40 active:scale-95"
+                >
+                  {scraping ? (
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {scrapeError && (
+                <p className="font-mono text-xs text-amber-400/80">{scrapeError}</p>
+              )}
+              {!scrapeError && (
+                <p className="font-mono text-xs text-slate-600">Paste your product URL to auto-fill the fields below</p>
+              )}
+            </div>
+
             {/* Product */}
             <div>
               <label className={labelClasses}>Your product / service *</label>
