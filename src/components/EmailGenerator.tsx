@@ -242,6 +242,11 @@ export default function EmailGenerator() {
       return;
     }
 
+    if (!form.prospectRole.trim() || !form.prospectIndustry.trim() || !form.valueProposition.trim()) {
+      setError("Please fill in prospect role, industry, and value proposition.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResults(null);
@@ -386,7 +391,7 @@ export default function EmailGenerator() {
             {/* Prospect role + industry */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelClasses}>Prospect role</label>
+                <label className={labelClasses}>Prospect role *</label>
                 <input
                   type="text"
                   value={form.prospectRole}
@@ -396,7 +401,7 @@ export default function EmailGenerator() {
                 />
               </div>
               <div>
-                <label className={labelClasses}>Industry</label>
+                <label className={labelClasses}>Industry *</label>
                 <input
                   type="text"
                   value={form.prospectIndustry}
@@ -409,7 +414,7 @@ export default function EmailGenerator() {
 
             {/* Value prop */}
             <div>
-              <label className={labelClasses}>Key value proposition</label>
+              <label className={labelClasses}>Key value proposition *</label>
               <textarea
                 rows={2}
                 value={form.valueProposition}
