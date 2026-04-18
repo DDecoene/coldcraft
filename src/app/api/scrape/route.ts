@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { runClaude } from '@/lib/claude-cli';
 
 function extractText(html: string): string {
   // Remove scripts, styles, nav, header, footer, forms
@@ -114,8 +115,6 @@ export async function POST(req: NextRequest) {
     const bodyText = extractText(html);
 
     // Use claude CLI to extract structured info
-    const { execSync } = await import('child_process');
-
     const prompt = `You are extracting product/company information from a webpage to help write cold emails.
 
 PAGE TITLE: ${title}
@@ -134,13 +133,10 @@ Extract the following and respond ONLY with valid JSON, no markdown:
 
 Be factual. Only use information present on the page. If info is missing, use empty string.`;
 
-    const { ANTHROPIC_API_KEY: _drop, ...safeEnv } = process.env;
-    const rawText = execSync('claude -p -', {
-      input: prompt,
-      env: { ...safeEnv, CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN ?? '' },
-      timeout: 20000,
-      maxBuffer: 512 * 1024,
-    }).toString().trim();
+    const rawText = await runClaude(prompt, {
+      timeoutMs: 20_000,
+      maxBufferBytes: 524_288,
+    });
 
     let parsed: { companyName: string; product: string; valueProp: string; targetAudience: string };
     try {

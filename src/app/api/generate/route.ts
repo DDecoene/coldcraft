@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { execSync } from 'child_process';
 import { randomUUID } from 'crypto';
 import { getDb } from '@/lib/db';
 import { verifyProToken, COOKIE_NAME as PRO_COOKIE } from '@/lib/pro-token';
+import { runClaude } from '@/lib/claude-cli';
 
 const FP_COOKIE = 'coldcraft_fp';
 const DAILY_LIMIT = 3;
@@ -187,14 +187,10 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
   const fullPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { ANTHROPIC_API_KEY: _drop, ...safeEnv } = process.env;
-    const rawText = execSync('claude -p -', {
-      input: fullPrompt,
-      env: { ...safeEnv, CLAUDE_CODE_OAUTH_TOKEN: process.env.CLAUDE_CODE_OAUTH_TOKEN ?? '' },
-      timeout: 30000,
-      maxBuffer: 1024 * 1024,
-    }).toString().trim();
+    const rawText = await runClaude(fullPrompt, {
+      timeoutMs: 30_000,
+      maxBufferBytes: 1_048_576,
+    });
 
     let parsed: { emails: Email[] };
     try {
