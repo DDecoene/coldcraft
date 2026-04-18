@@ -52,9 +52,18 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres npm test
 
 The container installs `@anthropic-ai/claude-code` globally at build time, so `claude` is on `$PATH` at runtime.
 
+On the production host, pull latest and redeploy with:
+
 ```bash
-docker compose build
-docker compose up -d
+git pull
+npm run deploy
+```
+
+`npm run deploy` stamps `GIT_SHA` (short commit) and `BUILD_AT` (UTC timestamp) into the image as build args, then runs `docker compose build && docker compose up -d`. Verify afterwards by calling:
+
+```bash
+curl https://coldcraft.rgwnd.app/api/version
+# → { "sha": "<short-sha>", "builtAt": "...", "nodeEnv": "production" }
 ```
 
 Requires the external Docker network `infra_network` to exist.

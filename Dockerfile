@@ -13,6 +13,11 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
+ARG GIT_SHA=unknown
+ARG BUILD_AT=unknown
+ENV GIT_SHA=${GIT_SHA}
+ENV BUILD_AT=${BUILD_AT}
+
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 # Install claude CLI for email generation
