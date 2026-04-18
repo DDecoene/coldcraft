@@ -186,7 +186,7 @@ Write all 3 emails — one using Problem-Solution, one using AIDA, one using Pat
 
   try {
     const rawText = await runClaude(fullPrompt, {
-      timeoutMs: 30_000,
+      timeoutMs: 120_000,
       maxBufferBytes: 1_048_576,
     });
 
