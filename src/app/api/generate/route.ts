@@ -72,21 +72,19 @@ export async function POST(req: NextRequest) {
   if (!isPro) {
     try {
       const db = await getDb();
-      const result = await db.query<{ count: number }>(
-        `INSERT INTO usage (fingerprint_id, usage_date, count)
+      const result = await db.query<{ count: number; was_limited: boolean }>(
+        `WITH prev AS (
+           SELECT count AS c FROM usage
+           WHERE fingerprint_id = $1 AND usage_date = CURRENT_DATE
+         )
+         INSERT INTO usage (fingerprint_id, usage_date, count)
          VALUES ($1, CURRENT_DATE, 1)
          ON CONFLICT (fingerprint_id, usage_date)
-         DO UPDATE SET count = usage.count + 1
-         RETURNING count`,
-        [fingerprint]
+         DO UPDATE SET count = LEAST(usage.count + 1, $2)
+         RETURNING count, COALESCE((SELECT c FROM prev), 0) >= $2 AS was_limited`,
+        [fingerprint, DAILY_LIMIT]
       );
-      const count = result.rows[0].count;
-      if (count > DAILY_LIMIT) {
-        // Roll back the increment so it stays at the limit
-        await db.query(
-          `UPDATE usage SET count = $1 WHERE fingerprint_id = $2 AND usage_date = CURRENT_DATE`,
-          [DAILY_LIMIT, fingerprint]
-        );
+      if (result.rows[0].was_limited) {
         const res = NextResponse.json(
           { error: 'Rate limit exceeded. You can generate up to 3 times per day.' },
           { status: 429 }
