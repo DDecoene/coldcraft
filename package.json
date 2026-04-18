@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "deploy": "GIT_SHA=$(git rev-parse --short HEAD) BUILD_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ) docker compose build && docker compose up -d"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
